@@ -8,6 +8,8 @@ Source code dependencies point in one direction only: **presentation → infrast
 
 This is what makes each layer independently testable: domain and application run under a plain test runner with no DOM, no framework, no network. If a domain test needs to mock a component or spin up a router, a dependency pointed the wrong way.
 
+Every other rule in this skill scales down with project size — this one doesn't. Violate it once and every layer below it stops being trustworthy, no matter how small the project is.
+
 ## Domain
 
 The business entities and the rules that must always hold for them. A domain type is a plain class or plain object with no decorator, no framework base class, no injected service:
@@ -110,7 +112,7 @@ export class HttpOrderRepository implements OrderRepository {
 
 ## Presentation
 
-Pages call use cases and hold the result as state; everything below a page renders what it's given. See `references/presentation.md` for how presentation itself decomposes — this layer is wide enough to need its own reference.
+See `references/presentation.md` — this layer is wide enough to need its own reference.
 
 ## A Trace Across All Four Layers
 
