@@ -9,6 +9,7 @@ Una colección de skills y utilidades para [Claude Code](https://claude.ai/code)
 | Skill | Descripción |
 | --- | --- |
 | [`css-guidelines`](skills/css-guidelines/) | Reglas modernas de autoría CSS/SCSS — cascade layers, ubicación según CUBE CSS, grid/container queries, propiedades lógicas, design tokens y un sistema de color OKLCH por canales L/C/H. |
+| [`frontend-arch`](skills/frontend-arch/) | Reglas de arquitectura frontend agnósticas de framework — capas y dirección de dependencias, estructura de carpetas orientada a features, descomposición de componentes con atomic design, y ubicación del estado de servidor/cliente. |
 
 ## Instalación
 

@@ -9,6 +9,7 @@ A collection of skills and utilities for [Claude Code](https://claude.ai/code).
 | Skill | Description |
 | --- | --- |
 | [`css-guidelines`](skills/css-guidelines/) | Modern CSS/SCSS authoring rules — cascade layers, CUBE CSS placement, grid/container queries, logical properties, design tokens, and an OKLCH L/C/H channel color system. |
+| [`frontend-arch`](skills/frontend-arch/) | Framework-agnostic frontend architecture rules — layering and dependency direction, feature-first folder structure, atomic-design component decomposition, and server/client state placement. |
 
 ## Install
 
