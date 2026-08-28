@@ -79,16 +79,20 @@ export function OrderSummaryCard({ order, onCancel }: { order: Order; onCancel: 
 }
 ```
 
-<!-- ❌ never — an atom reaching into application state on its own -->
+<!-- ❌ never — two ways an atom stops being reusable -->
 ```typescript
 // price-tag-bad.atom.tsx
-export function PriceTagBad({ orderId }: { orderId: string }) {
-  const order = useOrderStore((s) => s.orders[orderId]); // an atom should never own this
+export function PriceTagBadA({ orderId }: { orderId: string }) {
+  const order = useOrderStore((s) => s.orders[orderId]); // reaches into a store — can't reuse where the store doesn't exist
   return <span class="c-price">{order.total}</span>;
+}
+
+export function PriceTagBadB({ order }: { order: Order }) { // Order is the orders feature's entity
+  return <span class="c-price">{formatMoney(order.total)}</span>; // typed against a domain entity — drags the feature with it
 }
 ```
 
-Keep the async/store boundary at the container (page, or a deliberately-smart organism) — an atom or molecule that reaches into a store on its own can't be reused anywhere that store doesn't exist, which defeats the point of it being an atom.
+Keep the async/store boundary at the container (page, or a deliberately-smart organism), and keep the prop primitive:
 
 <!-- ✅ -->
 ```typescript
@@ -98,12 +102,4 @@ export function PriceTag({ amount }: { amount: number }) {
 }
 ```
 
-<!-- ❌ never — a "shared" atom typed against one feature's domain entity -->
-```typescript
-// price-tag-bad.atom.tsx
-export function PriceTagBad({ order }: { order: Order }) { // Order is the orders feature's entity
-  return <span class="c-price">{formatMoney(order.total)}</span>;
-}
-```
-
-`PriceTagBad` can't move to `shared/ui` without dragging the `orders` feature's domain type with it — it isn't shared, it's an organism wearing an atom's name. Pass `amount={order.total}` from the organism that has the entity instead of importing the entity type into the primitive.
+Pass `amount={order.total}` from the organism that has the entity instead of importing the entity type into the primitive.

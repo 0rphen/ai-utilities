@@ -30,7 +30,7 @@ src/
       index.ts
 ```
 
-Atoms and molecules are the *reusable* end of the atomic ladder (see `references/presentation.md`) — giving each feature its own `atoms/` folder just grows a near-duplicate `Button` per feature, which is the exact outcome atomic design exists to prevent. They live in `shared/ui` unconditionally; a feature's `presentation/` only ever holds organisms, templates, and pages.
+Atoms and molecules live in `shared/ui` unconditionally, never inside a feature — see `references/presentation.md` for why.
 
 A feature should be deletable by deleting its folder. If deleting `features/orders/` would break `features/suppliers/`, something imported past `orders/index.ts` into `orders/`'s internals — that's the violation Instruction 12's lint rule exists to catch.
 
