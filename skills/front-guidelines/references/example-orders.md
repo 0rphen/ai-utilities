@@ -216,6 +216,16 @@ export function OrderCardDumb({ order, onSelect }: OrderCardProps) {
 }
 ```
 
+### `orders.routes.ts`
+
+```ts
+// Framework-agnostic shape — adapt to the host router's API.
+// The app shell imports this dynamically; it never defines orders' routes itself.
+export const ordersRoutes = [
+  { path: 'orders', component: () => import('./ui/order-list.smart') },
+];
+```
+
 ### `index.ts`
 
 ```ts
@@ -223,5 +233,58 @@ export type { Order } from './domain/order.entity';
 export { OrderListSmart } from './ui/order-list.smart';
 ```
 
-Only these two are ever imported from outside `features/orders/`. Everything
-else — the repository, the datasource, the mapper, the facade — is internal.
+Only these two (plus `orders.routes.ts`, imported dynamically by the shell)
+are ever imported from outside `features/orders/`. Everything else — the
+repository, the datasource, the mapper, the facade — is internal.
+
+## Small-tier variant
+
+See `references/tiers.md` and `references/data-layer.md`'s escalation path.
+In a `small`-tier project, skip the standalone datasource file — the
+repository implementation makes the transport call itself. Nothing else in
+this example changes: same port, same mapper, same `ui/` files.
+
+```
+features/orders/
+  domain/
+    order.entity.ts
+    order.repository.port.ts
+  data/
+    order.dto.ts
+    order.mapper.ts
+    order.repository.ts        # calls the network directly, no datasource file
+  ui/
+    order-list.smart.ts        # no facade needed with a single consumer
+    order-card.dumb.ts
+  index.ts
+```
+
+### `data/order.repository.ts` (small tier)
+
+```ts
+import type { OrderRepository } from '../domain/order.repository.port';
+import type { Order } from '../domain/order.entity';
+import { httpClient } from '../../../core/http/http-client';
+import { OrderMapper } from './order.mapper';
+import type { OrderDto } from './order.dto';
+
+export class OrderRepositoryImpl implements OrderRepository {
+  async findById(id: string): Promise<Order> {
+    const res = await httpClient.get(`/orders/${id}`);
+    const dto: OrderDto = await res.json();
+    return OrderMapper.toEntity(dto);
+  }
+
+  async listByCustomer(customerId: string): Promise<Order[]> {
+    const res = await httpClient.get(`/customers/${customerId}/orders`);
+    const dtos: OrderDto[] = await res.json();
+    return dtos.map(OrderMapper.toEntity);
+  }
+}
+```
+
+`OrderRepository` (the port) and everything in `ui/` are byte-for-byte
+identical to the `medium`/`large` example above. Escalating later means
+extracting this method body into `order.remote.datasource.ts` behind
+`order.datasource.port.ts` — a `data/`-internal move that `ui/` never has to
+know happened.

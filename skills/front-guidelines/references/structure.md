@@ -19,8 +19,10 @@ src/
         order.repository.ts
       ui/
         orders.facade.ts                 # optional, see presentation.md
+        orders.store.ts                  # optional, feature-level, see state.md
         order-list.smart.ts
         order-card.dumb.ts
+      orders.routes.ts                   # optional in small tier, see tiers.md
       index.ts                           # the ONLY public surface of this feature
     checkout/
       domain/ data/ ui/ index.ts         # same shape, isolated from orders/
@@ -44,6 +46,7 @@ src/
   styles/                                # only if the project's CSS policy centralizes
     tokens/
     blocks/
+  app.routes.ts                          # composes and lazy-loads each feature's routes
 ```
 
 Feature internals (`domain/`, `data/`, `ui/`) are an implementation detail. The
@@ -51,7 +54,7 @@ only thing another feature — or the app shell — may import is `index.ts`.
 
 ## Mandatory naming fallback
 
-Use the host framework's own convention first (rule 10 in `SKILL.md`). Apply
+Use the host framework's own convention first (rule 13 in `SKILL.md`). Apply
 this table only when no such convention exists:
 
 | Concern | Suffix |
@@ -66,8 +69,10 @@ this table only when no such convention exists:
 | DTO ↔ entity mapper | `*.mapper.ts` |
 | Pure business-logic service | `*.service.ts` |
 | Stateful UI orchestrator | `*.facade.ts` |
+| Feature or app-wide store | `*.store.ts` |
 | Presentational component with logic | `*.smart.ts` (+ framework extension) |
 | Presentational component without logic | `*.dumb.ts` (+ framework extension) |
+| Feature route definitions | `*.routes.ts` |
 
 ## `index.ts` barrel rule
 
@@ -82,6 +87,12 @@ consume.
 export type { Order } from './domain/order.entity';
 export { OrderListSmart } from './ui/order-list.smart';
 ```
+
+A feature's `<feature>.routes.ts` is the second public entry point, alongside
+`index.ts` — it lives at the feature's root, outside `domain|data|ui`, so the
+feature-isolation grep below already permits it without any exception. The
+app shell imports it dynamically (lazy) rather than through a barrel — a
+barrel re-export would defeat code-splitting.
 
 ## Feature isolation, mechanically
 
