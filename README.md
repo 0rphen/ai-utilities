@@ -9,7 +9,11 @@ A collection of skills and utilities for [Claude Code](https://claude.ai/code).
 | Skill | Description |
 | --- | --- |
 | [`css-guidelines`](skills/css-guidelines/) | Modern CSS/SCSS authoring rules — cascade layers, CUBE CSS placement, grid/container queries, logical properties, design tokens, and an OKLCH L/C/H channel color system. |
-| [`front-guidelines`](skills/front-guidelines/) | Framework-agnostic frontend architecture rules — feature-first (screaming) structure, repository/datasource data layer, hard smart/dumb component split, and centralized, token-driven styling. |
+| [`front-guidelines`](skills/front-guidelines/) | Framework-agnostic frontend architecture rules — feature-first (screaming) structure, repository/datasource data layer, hard smart/dumb component split, tiered scaling (small/medium/large), and centralized, token-driven styling. |
+
+`proposals/` holds design drafts, not installable skills — see
+[`proposals/angular-skill.md`](proposals/angular-skill.md) for a future
+Angular-specific companion to `front-guidelines`.
 
 ## Install
 

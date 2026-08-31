@@ -17,6 +17,9 @@ A **dumb** component:
 - **Never** imports anything from a feature's `data/` folder, directly or
   transitively.
 - **Never** calls a repository, a datasource, or a facade.
+- **Never** receives a store as a prop/input — a store is DI'd/imported by a
+  smart component or facade, which passes plain data down (see
+  `references/state.md`).
 - **Never** reads a router, global store, context bound to app state, or
   performs a fetch of any kind.
 - Renders loading/error/empty only if explicitly told to via a prop
@@ -60,3 +63,6 @@ domain contracts.
   persisted anywhere) is local component or facade state — it has no
   business being modeled in `domain/` or persisted through a repository
   unless the product genuinely needs it to survive a reload.
+- For how far that state should be lifted (component-local vs. a feature or
+  app-wide store) and the encapsulation contract a store must follow, see
+  `references/state.md`.
