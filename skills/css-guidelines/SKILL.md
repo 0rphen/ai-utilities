@@ -24,7 +24,7 @@ These rules apply to what's being created or touched — never as a silent whole
 6. **Use relative units only**: `px` is forbidden except for an explicitly justified 1px hairline. Reach for `ch`, `rem`, `em`, `%`, `fr`, `dvh`/`dvi`/`svh`/`dvw`/`dvb`/`svw`, `vw`/`vh`, and the `cq*` family.
 7. **Use logical properties, always**: `padding-inline`/`padding-block`, `margin-inline`/`margin-block`, `inset-*`, `border-inline-*`/`border-block-*` — never physical `padding-left`, `margin-top`, `left`/`right`.
 8. **Source general values from tokens**: border-radius, padding, margin, gap, font-size, duration all come from custom properties in a tokens layer, never repeated literals. Fluid scales use `clamp()`, caps use `min()`/`max()`. See `references/tokens.md`.
-9. **Compose color from independent L/C/H channels** in `oklch()` — never an atomic literal, never `rgb()`/`hsl()`/hex/named colors (the only exceptions are `transparent` and `currentColor`). States and dark mode override one channel via a shared delta token computed from a `-base` channel, never self-referentially. See `references/color.md`.
+9. **Compose color from independent L/C/H channels** in `oklch()` — never an atomic literal, never `rgb()`/`hsl()`/hex/named colors (the only exceptions are `transparent` and `currentColor`). Dark mode redefines the channels directly; states derive from the composed color at the point of use with relative color syntax (`oklch(from var(--color-x) calc(l + var(--l-step-hover)) c h)`) and a shared delta token. See `references/color.md`.
 10. **Nest only what compounds onto the same selector**: pseudo-classes, pseudo-elements, at-rules that modify the block, and exceptions nest with `&`, max ~2 levels deep. Never write a bare `&--suffix` — it parses as a type selector, not a class suffix. Keep selectors crossing two distinct classes or DOM nodes flat.
 11. **Meet the accessibility floor**: `:focus-visible` always visible, touch targets ≥ `2.75rem`, respect `prefers-reduced-motion`, and keep a documented minimum lightness separation between a text token and its surface token.
 12. **Never invent a number**: every value comes from an existing project token or one confirmed with whoever requested the work — not a placeholder, not something eyeballed off a mockup.
@@ -38,15 +38,11 @@ These rules apply to what's being created or touched — never as a silent whole
 4. **`aspect-ratio` over fixed heights**: hold media/thumbnail proportions with `aspect-ratio`, not a fixed `height` or the padding-top hack.
 5. **Exceptions via `[data-*]`, nested**: a block variation is an attribute selector nested inside its block, never a standalone class or its own layer.
 6. **Semantic HTML first**: styling decisions assume the right element is already chosen; CSS never compensates for the wrong one.
-7. **Redeclare composed color at the block**: a `--color-*` custom property specified only at `:root` freezes its resolved value for descendants — redeclare it in the same rule that overrides a channel.
 
 ## Troubleshooting
 
-### A hover/active/disabled state changes nothing, not even slightly
-The composed `--color-*` token was likely declared only at `:root` (or an ancestor). A custom property's computed value is fixed where it was last *specified* — overriding a channel further down doesn't force recomputation unless the composed color is redeclared in that same rule. **Fix**: redeclare `--color-x: oklch(var(--x-l) var(--x-c) var(--x-h))` inside the block that applies the state.
-
-### A color silently goes wrong or transparent after adding a state
-Check for a self-referential delta, e.g. `--x-l: calc(var(--x-l) + 0.06)`. A custom property can't be defined in terms of its own current value across a recompute — it becomes guaranteed-invalid with no console error. **Fix**: always compute from the `-base` channel, never the live one.
+### A hover/active/disabled state applies no color at all
+The declaration is missing the `from` keyword — `oklch(var(--color-x) calc(l + …) c h)` is invalid syntax and gets dropped silently, no console error. **Fix**: `oklch(from var(--color-x) calc(l + var(--l-step-hover)) c h)`; `l`/`c`/`h`/`alpha` are only available as plain numbers inside a `from` scope.
 
 ### A nested modifier selector matches nothing
 `&--primary` is not Sass string concatenation — CSS nesting parses the identifier right after `&` as a type selector, compiling to a broken rule. **Fix**: use a CUBE exception (`&[data-variant='primary']`), or, in a BEM/SMACSS project, the full class with its leading dot (`&.button--primary`), verified to sit on the same DOM node.
@@ -61,7 +57,7 @@ Check for a self-referential delta, e.g. `--x-l: calc(var(--x-l) + 0.06)`. A cus
 - **No hex, `rgb()`, `hsl()`, or named colors** (`white`, `black`, `red`, …) — only `transparent` and `currentColor` are exempt, since neither names an actual color.
 - **No physical box properties** — logical properties only.
 - **Never reorder DOM nodes to change a responsive layout** — redefine `grid-template-areas` at the breakpoint instead.
-- **`color-mix()` is not a state tool** — correct for blending two distinct colors, wrong for deriving a state of the same color (use a channel delta).
+- **`color-mix()` is not a state tool** — correct for blending two distinct colors, wrong for deriving a state of the same color (use relative color syntax with a channel delta).
 - **`light-dark()` is the exception, not the default** — reach for it only when light/dark genuinely need a different hue, not just a different lightness.
 - **No invented numbers, ever** — not a placeholder, not "reasonable for now."
 
@@ -70,5 +66,5 @@ Check for a self-referential delta, e.g. `--x-l: calc(var(--x-l) + 0.06)`. A cus
 - **[references/tokens.md](references/tokens.md)** — the tokens layer, spacing/radius/typography scales, and fluid sizing with `clamp()`/`min()`/`max()`. Open before adding any general numeric value.
 - **[references/layout.md](references/layout.md)** — grid-template-areas with container queries, subgrid, flex, homogeneous collections, alignment, `aspect-ratio`, range-syntax media queries, and logical properties. Open before laying out any component or page section.
 - **[references/cube.md](references/cube.md)** — the four CUBE layers, naming, folder structure, and the placement decision table. Open whenever a new rule needs a home.
-- **[references/color.md](references/color.md)** — the L/C/H channel color system: token anatomy, states as deltas, dark mode, `@property`, and the gotchas that break silently. Open before touching any palette, theme, dark mode, or interactive color state.
+- **[references/color.md](references/color.md)** — the L/C/H channel color system: token anatomy, states via relative color syntax, dark mode, and the gotchas that break silently. Open before touching any palette, theme, dark mode, or interactive color state.
 - **[references/antipatterns.md](references/antipatterns.md)** — the antipattern → replacement table used in review/audit mode.
