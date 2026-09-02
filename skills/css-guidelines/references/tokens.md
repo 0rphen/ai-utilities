@@ -40,23 +40,21 @@ Color tokens follow the same layer but need their own anatomy — see [color.md]
 
 A private custom property is a block-scoped alias, declared at the top of the block, that stands between a public token and the declarations that use it. The leading `_` means "private to this block — nothing outside reads or sets it directly."
 
-**When**: only if the block is reused across different sites with different configurations, or has states/variants that move one of its values. A single-use block with fixed values consumes the token directly — a private with nothing to vary is dead indirection.
+**When**: only for an axis something actually moves — a state, a `&[data-*]` exception, or a documented external reconfiguration (a theme, a host site that reskins the block). Reuse alone is not a reason: a block used on every page still consumes the token directly on every axis that never changes, because a private with nothing to vary is dead indirection.
 
 **How**: name it by role, not by the token it currently points to (`--_bg`, `--_radius`, `--_pad-block` — never `--_color-brand`, `--_radius-m`). One private per configurable axis. Every declaration on that axis consumes the private, never the public token in parallel. A state or exception reassigns the private instead of repeating the declaration.
 
 <!-- ✅ -->
 ```css
 @layer block {
-  /* private customs because .card is reused across sites with different configurations */
+  /* --_radius is private because [data-variant='flat'] moves it; padding never varies */
   .card {
     --_radius: var(--radius-m);
-    --_pad-block: var(--space-m);
-    --_pad-inline: var(--space-s);
 
     container-type: inline-size;
     border-radius: var(--_radius);
-    padding-block: var(--_pad-block);
-    padding-inline: var(--_pad-inline);
+    padding-block: var(--space-m);
+    padding-inline: var(--space-s);
 
     &[data-variant='flat'] {
       --_radius: var(--radius-s);

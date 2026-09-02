@@ -41,21 +41,16 @@ The component itself — its appearance and behavior. Semantic name, **no prefix
 
 ```css
 @layer block {
-  /* private customs because .card is reused across sites with different configurations */
   .card {
-    --_radius: var(--radius-m);
-    --_pad-block: var(--space-m);
-    --_pad-inline: var(--space-s);
-
     container-type: inline-size;
-    border-radius: var(--_radius);
-    padding-block: var(--_pad-block);
-    padding-inline: var(--_pad-inline);
+    border-radius: var(--radius-m);
+    padding-block: var(--space-m);
+    padding-inline: var(--space-s);
   }
 }
 ```
 
-A block reused across sites with different configurations, or with states/variants, is exposed through private custom properties (`--_*`) instead of reading its tokens directly — see `tokens.md` for when the pattern is warranted versus a plain one-off declaration.
+Every axis here has a fixed value, so each declaration reads its token directly. Only an axis something actually moves — a state, or one of the exceptions below — is exposed as a private custom property (`--_*`); see the Exception section and `tokens.md` for the criterion.
 
 ---
 

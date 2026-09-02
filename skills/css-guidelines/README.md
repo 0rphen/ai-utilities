@@ -15,7 +15,7 @@ Or add it as a plugin per your Claude Code setup. Once installed, Claude reads `
 ## Contents
 
 - `SKILL.md` — the rules: cascade, placement, layout, responsiveness, units, tokens, color, nesting, accessibility.
-- `references/tokens.md` — the tokens layer, private custom properties (`--_*`) for reused blocks, and fluid scales.
+- `references/tokens.md` — the tokens layer, private custom properties (`--_*`) for a block's varying axes, and fluid scales.
 - `references/layout.md` — grid, subgrid, flex, container/media queries, logical properties.
 - `references/cube.md` — CUBE CSS layers, naming, folder structure.
 - `references/color.md` — the L/C/H channel color system, states, dark mode.

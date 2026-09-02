@@ -74,7 +74,7 @@ Deltas are tokens, not literals repeated at every component that needs a hover. 
 }
 ```
 
-`.button` gets reused across the product with the same states everywhere, so `--_bg` is the private custom property that makes that reuse explicit: `background-color` is declared once, and every state reassigns `--_bg` instead of repeating the property. The transition still fires normally, since it's watching `background-color` regardless of which value feeds it. See `tokens.md` for when this pattern is warranted versus a plain one-off declaration.
+Three states move `.button`'s background, so that axis — and only that axis — is exposed as `--_bg`: `background-color` is declared once, and every state reassigns `--_bg` instead of repeating the property. The transition still fires normally, since it's watching `background-color` regardless of which value feeds it. See `tokens.md` for when this pattern is warranted versus a plain one-off declaration.
 
 If the hover across the whole product needs to feel stronger, `--l-step-hover` is the single place to change — every component that follows this pattern moves together. Confirm deltas with the requester like any other value; a reasonable question shape is "how much lighter should hover feel — subtle / noticeable / strong" mapped to concrete options (`0.04` / `0.06` / `0.1`).
 
