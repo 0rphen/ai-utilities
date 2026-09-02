@@ -31,3 +31,7 @@ Use this table in review/audit mode: report each hit as `file:line → antipatte
 | `padding-block-start: 56.25%` (padding-top proportion hack) | fragile, unitless-looking magic number | `aspect-ratio: 16 / 9` |
 | fixed `height`/`block-size` to hold a media element's proportion | breaks at other sizes | `aspect-ratio` + `object-fit` |
 | `grid-template-areas` forced onto a collection of N equal items | areas are for named/heterogeneous zones, not a repeated set | `repeat(auto-fit or auto-fill, minmax(...))` |
+| `--_radius: var(--radius-m); border-radius: var(--radius-m);` | private declared but never consumed — dead indirection, the extension point doesn't really exist | `border-radius: var(--_radius);` |
+| `.button:hover { background-color: oklch(from …) }` repeating the property in every state of a block that already has privates | duplicates the final declaration; the configurable axis stops being singular | reassign `--_bg` in the state, with `background-color: var(--_bg)` declared once (see `color.md`) |
+| `.sidebar .card { --_radius: var(--radius-s) }` | reassigns a private from outside its block and crosses two classes in one selector | nested exception `&[data-variant='…']` inside `.card` |
+| `--_bg: var(--color-brand);` on a block used in exactly one place with a fixed value | private with nothing to vary — indirection with no reuse or state to justify it | consume `var(--color-brand)` directly (see `tokens.md`) |

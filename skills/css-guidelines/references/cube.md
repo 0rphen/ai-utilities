@@ -41,14 +41,21 @@ The component itself — its appearance and behavior. Semantic name, **no prefix
 
 ```css
 @layer block {
+  /* private customs because .card is reused across sites with different configurations */
   .card {
+    --_radius: var(--radius-m);
+    --_pad-block: var(--space-m);
+    --_pad-inline: var(--space-s);
+
     container-type: inline-size;
-    border-radius: var(--radius-m);
-    padding-block: var(--space-m);
-    padding-inline: var(--space-s);
+    border-radius: var(--_radius);
+    padding-block: var(--_pad-block);
+    padding-inline: var(--_pad-inline);
   }
 }
 ```
+
+A block reused across sites with different configurations, or with states/variants, is exposed through private custom properties (`--_*`) instead of reading its tokens directly — see `tokens.md` for when the pattern is warranted versus a plain one-off declaration.
 
 ---
 
@@ -82,11 +89,16 @@ A variation of an existing block — never a standalone class, never its own lay
 ```css
 @layer block {
   .card {
-    border-radius: var(--radius-m);
+    --_radius: var(--radius-m);
+    border-radius: var(--_radius);
 
     &[data-variant='ghost'] {
       background: transparent;
       border: var(--border-hairline) solid var(--color-neutral);
+    }
+
+    &[data-variant='flat'] {
+      --_radius: var(--radius-s);
     }
 
     &[data-state='loading'] {
@@ -96,6 +108,8 @@ A variation of an existing block — never a standalone class, never its own lay
   }
 }
 ```
+
+When the exception's job is to move a value the block already exposes as a private (like `--_radius` above), it reassigns that private rather than redeclaring the final property — the block keeps a single declaration for that property. `[data-variant='ghost']` still declares its own properties directly because `background`/`border` aren't private axes of `.card` in this example.
 
 ---
 
