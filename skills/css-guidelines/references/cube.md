@@ -50,7 +50,7 @@ The component itself — its appearance and behavior. Semantic name, **no prefix
 }
 ```
 
-Every axis here has a fixed value, so each declaration reads its token directly. Only an axis something actually moves — a state, or one of the exceptions below — is exposed as a private custom property (`--_*`); see the Exception section and `tokens.md` for the criterion.
+Every axis here has a fixed value, so each declaration reads its token directly. Only an axis something actually moves — a state, or one of the exceptions below — is exposed as an internal custom property (`--_*`); see the Exception section and `tokens.md` for the criterion.
 
 ---
 
@@ -104,7 +104,7 @@ A variation of an existing block — never a standalone class, never its own lay
 }
 ```
 
-When the exception's job is to move a value the block already exposes as a private (like `--_radius` above), it reassigns that private rather than redeclaring the final property — the block keeps a single declaration for that property. `[data-variant='ghost']` still declares its own properties directly because `background`/`border` aren't private axes of `.card` in this example.
+When the exception's job is to move a value the block already exposes as an internal (like `--_radius` above), it reassigns that internal rather than redeclaring the final property — the block keeps a single declaration for that property. `[data-variant='ghost']` still declares its own properties directly because `background`/`border` aren't internal axes of `.card` in this example.
 
 ---
 

@@ -36,18 +36,18 @@ Color tokens follow the same layer but need their own anatomy — see [color.md]
 
 ---
 
-## Private Custom Properties (`--_*`)
+## Internal Custom Properties (`--_*`)
 
-A private custom property is a block-scoped alias, declared at the top of the block, that stands between a public token and the declarations that use it. The leading `_` means "private to this block — nothing outside reads or sets it directly."
+An internal custom property is a block-scoped alias, declared at the top of the block, that stands between a public token and the declarations that use it. The leading `_` is a naming convention, not an engine-enforced boundary: CSS gives custom properties no visibility control, so `--_*` still inherits into every descendant and is still assignable by any selector that matches the block. The underscore signals "this is for this block's own use" — the barrier is authoring discipline (see the reassignment rule below), not something the cascade guarantees. For an engine-backed version of that boundary, see the optional `@property` hardening at the end of this section.
 
-**When**: only for an axis something actually moves — a state, a `&[data-*]` exception, or a documented external reconfiguration (a theme, a host site that reskins the block). Reuse alone is not a reason: a block used on every page still consumes the token directly on every axis that never changes, because a private with nothing to vary is dead indirection.
+**When**: only for an axis something actually moves — a state, a `&[data-*]` exception, or a documented external reconfiguration (a theme, a host site that reskins the block). Reuse alone is not a reason: a block used on every page still consumes the token directly on every axis that never changes, because an internal with nothing to vary is dead indirection.
 
-**How**: name it by role, not by the token it currently points to (`--_bg`, `--_radius`, `--_pad-block` — never `--_color-brand`, `--_radius-m`). One private per configurable axis. Every declaration on that axis consumes the private, never the public token in parallel. A state or exception reassigns the private instead of repeating the declaration.
+**How**: name it by role, not by the token it currently points to (`--_bg`, `--_radius`, `--_pad-block` — never `--_color-brand`, `--_radius-m`). One internal per configurable axis. Every declaration on that axis consumes the internal, never the public token in parallel. A state or exception reassigns the internal instead of repeating the declaration.
 
 <!-- ✅ -->
 ```css
 @layer block {
-  /* --_radius is private because [data-variant='flat'] moves it; padding never varies */
+  /* --_radius is internal because [data-variant='flat'] moves it; padding never varies */
   .card {
     --_radius: var(--radius-m);
 
@@ -63,7 +63,7 @@ A private custom property is a block-scoped alias, declared at the top of the bl
 }
 ```
 
-<!-- ❌ never — the private is declared but never consumed; border-radius still reads the public token, so the extension point does nothing -->
+<!-- ❌ never — the internal is declared but never consumed; border-radius still reads the public token, so the extension point does nothing -->
 ```css
 @layer block {
   .card {
@@ -73,7 +73,24 @@ A private custom property is a block-scoped alias, declared at the top of the bl
 }
 ```
 
-Reassignment stays inside the block's own nesting — a state, or `&[data-variant='…']`. Never from a parent or a sibling block (`.sidebar .card { --_radius: … }`): that both breaks the block's encapsulation and crosses two classes in one selector, which the nesting rule already forbids. See [color.md](color.md) for private customs applied to a state's color axis, and [cube.md](cube.md) for the block/exception placement this pattern lives in.
+Reassignment stays inside the block's own nesting — a state, or `&[data-variant='…']`. Never from a parent or a sibling block (`.sidebar .card { --_radius: … }`): that both breaks the block's encapsulation and crosses two classes in one selector, which the nesting rule already forbids. See [color.md](color.md) for internal customs applied to a state's color axis, and [cube.md](cube.md) for the block/exception placement this pattern lives in.
+
+### Optional hardening with `@property`
+
+The `_` convention alone doesn't stop inheritance or outside reassignment — CSS has no visibility model for custom properties. Registering an internal with `@property` and `inherits: false` closes the inheritance leak for real: the value stops propagating into descendants, so `.sidebar { --_radius: var(--radius-s); }` no longer bleeds into a `.card` nested inside it.
+
+```css
+@property --_radius {
+  syntax: '*';
+  inherits: false;
+}
+```
+
+`syntax: '*'` is the only syntax that lets `initial-value` be omitted; the `@property` rule sits at the stylesheet's top level, not nested inside the block. This is optional, not a rule the other sections of this skill enforce — reach for it only when a block is reused inside other blocks that also touch `--_*`-shaped names and the inheritance leak is a real, observed risk, not by default on every internal.
+
+Two things it does **not** give: a selector that matches the block itself still reassigns the internal (`.sidebar .card { --_radius: … }` still works — there's no privacy outside Shadow DOM), and `inherits: false` breaks any state or exception that reads `var(--_radius)` from a **descendant** element rather than the block's own selector or its `&`-nested states — those are unaffected since they're the same element, but a child element relying on inherited `--_radius` will see the registered initial value instead. Confirm nothing outside the block's own selector depends on inheriting the internal before registering it.
+
+See [MDN: `@property`](https://developer.mozilla.org/en-US/docs/Web/CSS/@property).
 
 ---
 
