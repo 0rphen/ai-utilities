@@ -10,10 +10,7 @@ Una colección de skills y utilidades para [Claude Code](https://claude.ai/code)
 | --- | --- |
 | [`css-guidelines`](skills/css-guidelines/) | Reglas modernas de autoría CSS/SCSS — cascade layers, ubicación según CUBE CSS, grid/container queries, propiedades lógicas, design tokens y un sistema de color OKLCH por canales L/C/H. |
 | [`front-guidelines`](skills/front-guidelines/) | Reglas de arquitectura frontend agnósticas de framework — estructura orientada a features (screaming architecture), capa de datos repository/datasource, separación estricta smart/dumb, escalado por niveles (small/medium/large), y estilos centralizados basados en tokens. |
-
-`proposals/` contiene borradores de diseño, no skills instalables — ver
-[`proposals/angular-skill.md`](proposals/angular-skill.md) para una futura
-skill específica de Angular, complementaria a `front-guidelines`.
+| [`angular-guidelines`](skills/angular-guidelines/) | Reglas de arquitectura y política específicas de Angular — ubicación del estado, fronteras de acceso a datos, límites de componentes, y política de DI/routing/change-detection. Independiente de versión; complementaria a `front-guidelines`. |
 
 ## Instalación
 
@@ -41,6 +38,9 @@ Una vez instalada, cada skill se auto-carga según su campo `description` del fr
 
 ```
 skills/
+  css-guidelines/     # reglas de autoría CSS/SCSS
+  front-guidelines/   # arquitectura frontend agnóstica de framework
+  angular-guidelines/ # arquitectura y política específicas de Angular
   <skill-name>/
     SKILL.md          # reglas y frontmatter (name, description, allowed-tools) — fuente de verdad
     references/*.md    # docs de detalle que la skill enlaza bajo demanda, no se precargan
