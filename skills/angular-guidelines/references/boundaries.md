@@ -62,3 +62,9 @@ extraction adds indirection without payoff.
 Change-detection policy is a project-wide decision, declared once: zoneless
 where the installed version supports it, `OnPush` otherwise. Detect which
 applies rather than assuming.
+
+Every component ships as separate files: `.ts`, `.html`, and
+`.css`/`.scss` — never `template`/`styles` inline in the decorator. A
+single-file component trades trivial line savings for worse diffability,
+no template syntax highlighting, and awkward multi-line style blocks; the
+separate-file layout is the default with no size exception.
