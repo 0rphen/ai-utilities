@@ -55,7 +55,9 @@ chat language.
     templates with no business logic or derivation; explicit input/output
     contracts; no premature extraction; change-detection policy (zoneless
     where the installed version supports it, otherwise `OnPush`) declared once,
-    project-wide. See `references/boundaries.md`.
+    project-wide; template and styles in their own `.html`/`.css`(`.scss`)
+    files, never inline — no single-file component. See
+    `references/boundaries.md`.
 12. **Routing is a composition/navigation boundary, and infrastructure stays
     out of application logic.** Per-feature route files composed by the shell;
     guards decide access, not business workflows; route/query params are
