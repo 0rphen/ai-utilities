@@ -1,6 +1,6 @@
 ---
 name: front-guidelines
-description: Feature-first (screaming) frontend architecture with a domain/structure data layer (declarations vs. implementations), a mandatory facade, hard smart/dumb component split, and centralized styling. Use when creating a new frontend project, scaffolding a feature, or editing/reviewing existing frontend code for structure, data-access, state, routing, or component-boundary decisions.
+description: Feature-first (screaming) frontend architecture with a domain/structure data layer (declarations vs. implementations), a mandatory facade, hard smart/dumb component split, centralized styling, and SOLID/DRY principles. Use when creating a new frontend project, scaffolding a feature, or editing/reviewing existing frontend code for structure, data-access, state, routing, or component-boundary decisions.
 allowed-tools: Read, Write, Edit, Glob, Grep, AskUserQuestion
 ---
 
@@ -10,8 +10,8 @@ Framework-agnostic rules: folder tree screams the business domain, not the
 tech stack. One canonical structure, no scaling tiers: feature-first
 organization, a `domain`/`structure` data layer split (declarations vs.
 implementations), a mandatory facade, hard smart/dumb split, centralized
-token-driven styling. All generated code (identifiers, file names, comments)
-is English, regardless of chat language.
+token-driven styling, SOLID and DRY applied throughout. All generated code
+(identifiers, file names, comments) is English, regardless of chat language.
 
 ## Instructions
 
@@ -85,7 +85,15 @@ is English, regardless of chat language.
     exists, follow it exactly. Otherwise, one-line fallback: consume
     centralized design tokens, no hardcoded values in component styles.
 
-15. **All generated code is in English** — names, files, comments — even in a
+15. **Apply SOLID and DRY throughout.** One responsibility per file (SRP);
+    depend on the `domain/` port, never the concrete `structure/`
+    implementation (DIP); extend by adding a new port implementation, not by
+    branching inside an existing one (OCP); never duplicate a mapping,
+    validation, or formatting rule across features — lift it into `domain/`
+    (business rule) or `shared/`/`utils/` (generic) instead (DRY). See
+    `references/antipatterns.md`.
+
+16. **All generated code is in English** — names, files, comments — even in a
     non-English conversation.
 
 ## Constraints
