@@ -8,12 +8,13 @@ ladder this mirrors.
 
 1. **Component-local** — `signal()` directly in the component. Starting point,
    always.
-2. **Feature store** — `@Injectable({ providedIn: 'root' })` or route-scoped,
-   with a private writable signal. Promote on a concrete trigger: a second
-   consumer needs the same state, or a derived value would otherwise be
-   recomputed and drift.
+2. **Feature store** (`features/<x>/store/<x>.store.ts`) —
+   `@Injectable({ providedIn: 'root' })` or route-scoped, with a private
+   writable signal. Promote on a concrete trigger: a second consumer needs
+   the same state, or a derived value would otherwise be recomputed and
+   drift.
 3. **App-wide store** — same shape, placed where the project's runtime
-   singletons live (session, theme, feature flags).
+   singletons live (`core/`: session, theme, feature flags).
 4. **Store library** — bring in a dedicated signal-based store solution only
    once app-wide state has real cross-feature interdependencies and the team
    needs devtools/time-travel. Don't reach for this to manage one feature's
@@ -42,8 +43,8 @@ generating this — the shape is stable, the API surface isn't guaranteed to be.
 - Private mutable signal, public readonly accessor.
 - Derived values are `computed()`, never recomputed in a template.
 - Mutation only through named methods — never a raw setter.
-- The store is obtained via DI, never passed as a prop/input to a dumb
-  component.
+- The store is obtained via DI by the facade, and only the facade — never
+  passed as a prop/input to a dumb component.
 
 ## Signals vs RxJS
 
@@ -64,7 +65,7 @@ path explicitly whenever an effect drives a network call.
 
 ## A store is not a repository
 
-A store calls the repository for anything leaving the process — it never
-calls a datasource or HTTP client directly, and it never holds a DTO. It holds
-entities or UI-shaped projections of them, same mapper boundary as
+A store never calls the repository or the HTTP client directly — the facade
+populates the store by calling the repository, and it never holds a DTO. It
+holds models or UI-shaped projections of them, same mapper boundary as
 `references/boundaries.md`.

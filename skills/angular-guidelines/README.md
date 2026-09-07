@@ -3,7 +3,7 @@
 Claude Code skill for Angular architecture and policy: where state lives,
 data-access boundaries, component boundaries, and feature structure. Defers
 API syntax, forms, and CLI to `angular-developer`/`angular-new-app`, and
-folder/tier structure to `front-guidelines` when installed.
+folder structure to `front-guidelines` when installed.
 
 Part of the `ia-utilities` skill package. To activate it in a Claude Code
 session, symlink it into the skills directory:

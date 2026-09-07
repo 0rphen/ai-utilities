@@ -22,7 +22,7 @@ current — it never changes an architectural rule in `SKILL.md`.
 | Testing (unit, harnesses, e2e) | `angular-developer` (`testing-fundamentals.md` and siblings) |
 | CLI, schematics, migrations | `angular-developer` (`cli.md`) |
 | New project bootstrap (`ng new`, flags) | `angular-new-app` |
-| Feature-first structure, `domain/data/ui`, ports, tiers | `front-guidelines` |
+| Feature-first structure, `domain/structure`, ports, facade | `front-guidelines` |
 | CSS/SCSS authoring | `css-guidelines` |
 | Which pattern, which boundary, which scope | this skill |
 
@@ -31,9 +31,9 @@ state the assumption made, and don't invent API detail on its behalf.
 
 ## Precedence
 
-`front-guidelines` is the source of truth for `domain/data/ui`, the mapper,
-feature isolation, and the tier ladder whenever it's installed — this skill
-only binds those to Angular concepts (which files, which DI scope).
+`front-guidelines` is the source of truth for `domain/structure`, the mapper,
+the mandatory facade, and feature isolation whenever it's installed — this
+skill only binds those to Angular concepts (which files, which DI scope).
 
 `angular-developer/references/naming-conventions.md` also prescribes a
 `core/features/shared` structure and file naming. For **architecture**
@@ -47,7 +47,10 @@ Without `front-guidelines` installed, use this minimal shape per feature:
 
 ```
 features/<name>/
-  domain/   # entities, repository port, pure services — no Angular import
-  data/     # repository impl, mapper, HTTP client usage
-  ui/       # components, optional facade, resource() wrappers
+  domain/       # models, repository port (interface/abstract class) — no Angular import, no implementation
+  structure/    # repository impl, mapper, HTTP client usage — flat
+  store/        # feature state, private writable signal behind a readonly API
+  components/   # dumb, feature-scoped presentational components
+  pages/        # smart, route-bound components
+  <name>.facade.ts   # mandatory, the only thing pages/ calls
 ```

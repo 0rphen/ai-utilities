@@ -6,8 +6,9 @@
 | Effect writing back to the state it depends on | Use an explicit method call; keep effects one-directional (outgoing side effects only) |
 | Effect used as a general state-sync mechanism | Trigger sync from the state change site, not from an effect reacting to it |
 | HTTP client, URL, or transport error reaching a component | Route through the repository; map errors at the data-access boundary |
-| DTO typed into `ui/`/`domain/`, or reaching a template | Add the missing mapper at the `data/`↔`domain` boundary |
-| `resource()`/`httpResource()` inside `data/` | Move to `ui/`; keep `data/` free of presentation/runtime primitives |
+| DTO typed into `domain/`, `store/`, `components/`, or `pages/`, or reaching a template | Add the missing mapper at the `structure/`↔`domain` boundary |
+| `resource()`/`httpResource()` inside `structure/` | Move to the facade; keep `structure/` free of presentation/runtime primitives |
+| `pages/` calling `structure/` or `store/` directly, bypassing the facade | Route everything through the facade |
 | Store promoted to app-wide scope for convenience, without 2+ consumers or cross-navigation need | Keep it feature-scoped until the trigger actually appears |
 | Derived value duplicated in a writable signal instead of `computed()` | Compute it once inside the store/component as a derived value |
 | Injectable accumulating unrelated responsibilities (a "god service") | Split by responsibility; keep each service coherent |

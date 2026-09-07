@@ -9,7 +9,7 @@ Una colección de skills y utilidades para [Claude Code](https://claude.ai/code)
 | Skill | Descripción |
 | --- | --- |
 | [`css-guidelines`](skills/css-guidelines/) | Reglas modernas de autoría CSS/SCSS — cascade layers, ubicación según CUBE CSS, grid/container queries, propiedades lógicas, design tokens y un sistema de color OKLCH por canales L/C/H. |
-| [`front-guidelines`](skills/front-guidelines/) | Reglas de arquitectura frontend agnósticas de framework — estructura orientada a features (screaming architecture), capa de datos repository/datasource, separación estricta smart/dumb, escalado por niveles (small/medium/large), y estilos centralizados basados en tokens. |
+| [`front-guidelines`](skills/front-guidelines/) | Reglas de arquitectura frontend agnósticas de framework — estructura orientada a features (screaming architecture), capa de datos `domain`/`structure` (declaraciones vs. implementaciones), facade obligatorio, separación estricta smart/dumb, y estilos centralizados basados en tokens. |
 | [`angular-guidelines`](skills/angular-guidelines/) | Reglas de arquitectura y política específicas de Angular — ubicación del estado, fronteras de acceso a datos, límites de componentes, y política de DI/routing/change-detection. Independiente de versión; complementaria a `front-guidelines`. |
 
 ## Instalación

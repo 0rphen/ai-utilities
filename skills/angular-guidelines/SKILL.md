@@ -8,7 +8,7 @@ allowed-tools: Read, Write, Edit, Glob, Grep, AskUserQuestion
 
 Angular's architecture and policy layer: which pattern, which boundary, which
 scope — never which API call. Companion to `front-guidelines` (feature-first
-structure, ports, tiers) and to `angular-developer`/`angular-new-app` (API
+structure, ports, facade) and to `angular-developer`/`angular-new-app` (API
 mechanics, project bootstrap). Version-independent: no primitive named here is
 pinned to a major — check it against the project's installed Angular version.
 All generated code (identifiers, files, comments) is English, regardless of
@@ -25,9 +25,9 @@ chat language.
    `angular-developer`; project creation → `angular-new-app`. This skill
    decides which and where, not how to type it. See `references/delegation.md`.
 3. **Structure comes from `front-guidelines`; this skill only binds it to
-   Angular.** `domain/data/ui`, mapper, feature isolation, tier ladder take
-   precedence over `angular-developer`'s `naming-conventions.md` for
-   architecture. See `references/delegation.md`.
+   Angular.** `domain/structure`, the mapper, the mandatory facade, and
+   feature isolation take precedence over `angular-developer`'s
+   `naming-conventions.md` for architecture. See `references/delegation.md`.
 4. **Classify by responsibility, not by folder or feature name.** One feature
    may hold both infrastructure and application responsibilities — split by
    what the code does, not what it's named.
@@ -46,8 +46,8 @@ chat language.
    `references/state.md`.
 9. **Data access stays behind the repository boundary.** No HTTP client, URL,
    DTO, or transport error reaches a component; map at the boundary;
-   resource/query primitives live in `ui/` wrapping the repository, never in
-   `data/`. See `references/boundaries.md`.
+   resource/query primitives live in the facade wrapping the repository,
+   never in `structure/`. See `references/boundaries.md`.
 10. **Injectables have one coherent responsibility, scoped to the lifetime of
     the state they own.** No god services; no interface/token without a
     substitution or testability reason. See `references/boundaries.md`.
