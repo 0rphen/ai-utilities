@@ -7,50 +7,56 @@ src/
   features/
     orders/                    # one folder per business domain, not per tech layer
       domain/
-        order.entity.ts
-        order.repository.port.ts
-        order-pricing.service.ts
-      data/
+        order.model.ts               # entity/model — data shape only
+        order-repository.ts          # abstract class or interface (port)
+      structure/
         order.dto.ts
         order.mapper.ts
-        order.remote.datasource.ts
-        order.local.datasource.ts        # optional: cache/offline
-        order.datasource.port.ts
-        order.repository.ts
-      ui/
-        orders.facade.ts                 # optional, see presentation.md
-        orders.store.ts                  # optional, feature-level, see state.md
-        order-list.smart.ts
+        order-http-repository.ts     # implements/extends order-repository.ts
+      store/
+        orders.store.ts
+      components/
         order-card.dumb.ts
-      orders.routes.ts                   # optional in small tier, see tiers.md
-      index.ts                           # the ONLY public surface of this feature
+      pages/
+        order-list.page.ts           # the only thing orders.routes.ts mounts
+      orders.facade.ts                # mandatory, the only surface pages/ calls
+      orders.routes.ts
+      index.ts                        # the ONLY public surface of this feature
     checkout/
-      domain/ data/ ui/ index.ts         # same shape, isolated from orders/
+      domain/ structure/ store/ components/ pages/ index.ts   # same shape, isolated
   core/                                  # runtime singletons, no business logic
     http/
       http-client.ts
+      auth.interceptor.ts
+    auth/
+      auth.service.ts
     config/
       app-config.ts
     router/
       app-router.ts
     error/
       global-error-handler.ts
-  shared/                                # stateless, reusable, no business logic
-    ui/
-      button.dumb.ts
-      spinner.dumb.ts
-    utils/
-      format-date.ts
-    types/
-      pagination.ts
+    store/
+      session.store.ts               # app-wide store, one instance for the app
+  shared/                                # general-purpose, visual, reusable, no domain knowledge
+    button.dumb.ts
+    input.dumb.ts
+    card.dumb.ts
+    header.dumb.ts
+    footer.dumb.ts
+    nav.dumb.ts
+  utils/                                 # general-purpose pure functions — no UI, no state, no I/O
+    format-date.ts
+    pagination.ts
   styles/                                # only if the project's CSS policy centralizes
     tokens/
     blocks/
   app.routes.ts                          # composes and lazy-loads each feature's routes
 ```
 
-Feature internals (`domain/`, `data/`, `ui/`) are an implementation detail. The
-only thing another feature — or the app shell — may import is `index.ts`.
+Feature internals (`domain/`, `structure/`, `store/`, `components/`, `pages/`)
+are an implementation detail. The only thing another feature — or the app
+shell — may import is `index.ts` (plus `<feature>.routes.ts`, lazily).
 
 ## Mandatory naming fallback
 
@@ -59,62 +65,62 @@ this table only when no such convention exists:
 
 | Concern | Suffix |
 |---|---|
-| Domain entity | `*.entity.ts` |
-| Repository port (interface) | `*.repository.port.ts` |
-| Repository implementation | `*.repository.ts` |
-| Datasource port (interface) | `*.datasource.port.ts` |
-| Remote datasource implementation | `*.remote.datasource.ts` |
-| Local datasource implementation | `*.local.datasource.ts` |
+| Domain entity/model | `*.model.ts` |
+| Repository port (interface/abstract class) | `*-repository.ts` (in `domain/`) |
+| Repository implementation | `*-http-repository.ts` (or transport-specific) |
 | API response shape | `*.dto.ts` |
-| DTO ↔ entity mapper | `*.mapper.ts` |
-| Pure business-logic service | `*.service.ts` |
-| Stateful UI orchestrator | `*.facade.ts` |
+| DTO ↔ model mapper | `*.mapper.ts` |
 | Feature or app-wide store | `*.store.ts` |
-| Presentational component with logic | `*.smart.ts` (+ framework extension) |
-| Presentational component without logic | `*.dumb.ts` (+ framework extension) |
+| Stateful orchestrator, mandatory per feature | `*.facade.ts` |
+| Dumb, presentational component | `*.dumb.ts` (+ framework extension) |
+| Smart, route-bound component | `*.page.ts` (+ framework extension) |
 | Feature route definitions | `*.routes.ts` |
 
 ## `index.ts` barrel rule
 
 Export only what other features or the app shell are allowed to consume —
-typically: the entity type(s), and the smart component(s) meant to be mounted
-from outside. Never re-export `data/` contents, ports, or internal services
-through the barrel; those exist only for the feature's own `ui/` layer to
-consume.
+typically: the model type(s), and any page component meant to be mounted
+from outside the feature's own routes. Never re-export `structure/`,
+`store/`, `domain/` ports, or the facade through the barrel; those exist only
+for the feature's own `pages/`/`components/` to consume.
 
 ```ts
 // features/orders/index.ts
-export type { Order } from './domain/order.entity';
-export { OrderListSmart } from './ui/order-list.smart';
+export type { Order } from './domain/order.model';
+export { OrderListPage } from './pages/order-list.page';
 ```
 
 A feature's `<feature>.routes.ts` is the second public entry point, alongside
-`index.ts` — it lives at the feature's root, outside `domain|data|ui`, so the
-feature-isolation grep below already permits it without any exception. The
-app shell imports it dynamically (lazy) rather than through a barrel — a
-barrel re-export would defeat code-splitting.
+`index.ts` — it lives at the feature's root, outside
+`domain|structure|store|components|pages`, so the feature-isolation grep
+below already permits it without any exception. The app shell imports it
+dynamically (lazy) rather than through a barrel — a barrel re-export would
+defeat code-splitting.
 
 ## Feature isolation, mechanically
 
-Forbidden: any import matching `features/<X>/(domain|data|ui)/` from a file
+Forbidden: any import matching
+`features/<X>/(domain|structure|store|components|pages)/` from a file
 outside `features/<X>/`. Allowed: `features/<X>/index` from anywhere.
 Auditable with a per-feature grep for that pattern excluding the feature's
 own folder — a match means a deep import crossed a feature boundary.
 
-## `core/` vs `shared/` — worked examples
+## `core/` vs `shared/` vs `utils/` — worked examples
 
-Ask: "does this have exactly one instance while the app runs?"
+Ask, in order: "does this have exactly one instance while the app runs?" →
+`core/`. Otherwise, "does it render UI?" → `shared/`. Otherwise → `utils/`.
 
-| Item | Instance? | Folder |
+| Item | Instance/shape | Folder |
 |---|---|---|
-| HTTP client wrapping fetch/axios | One, shared app-wide | `core/` |
+| HTTP client + auth interceptor | One, shared app-wide | `core/` |
+| Login/auth service, session state | One | `core/` |
 | Router instance | One | `core/` |
 | Global error handler / toast dispatcher | One | `core/` |
-| App-wide auth/session state | One | `core/` |
-| `<Button>` dumb component | Many, stateless | `shared/` |
-| `formatDate()` utility | Many, stateless | `shared/` |
-| Generic `usePagination()` hook | Many, no shared state between callers | `shared/` |
-| Pagination type/interface | N/A, pure type | `shared/` |
+| `<Button>` / `<Input>` / `<Card>` dumb component | Many, stateless, visual | `shared/` |
+| `<Header>` / `<Footer>` / `<Nav>` dumb component | Many, stateless, visual | `shared/` |
+| `formatDate()` function | Many callers, no UI | `utils/` |
+| `paginate()` / `groupBy()` function | Many callers, no UI | `utils/` |
+| Pagination type/interface | N/A, pure type | `shared/` (co-located with what consumes it) |
 
 If an item holds domain-specific meaning (an `Order`-shaped anything), it does
-not belong in either — it belongs inside the owning feature.
+not belong in any of the three — it belongs inside the owning feature.

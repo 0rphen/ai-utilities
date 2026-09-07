@@ -2,117 +2,92 @@
 
 Full code for every file mentioned here: `references/example-orders.md`.
 
-## Port vs implementation
+## `domain/` declares, `structure/` implements
 
-A port is an interface owned by `domain/`, expressed in domain vocabulary —
-no HTTP verb, status code, SQL, or cache-TTL concept:
+`domain/` holds only declarations: the model/entity shape, and a repository
+port expressed as an interface or abstract class, in domain vocabulary — no
+HTTP verb, status code, SQL, or cache-TTL concept:
 
 ```ts
-// domain/order.repository.port.ts
-export interface OrderRepository {
-  findById(id: string): Promise<Order>;
+// domain/order.model.ts
+export interface Order {
+  id: string;
+  customerName: string;
+  total: number;
+}
+
+// domain/order-repository.ts
+export abstract class OrderRepository {
+  abstract findById(id: string): Promise<Order>;
+  abstract listByCustomer(customerId: string): Promise<Order[]>;
 }
 ```
 
-The implementation lives in `data/` and is the only thing allowed to know
-transport/cache details.
+An abstract class works as well as an interface for a port — some
+frameworks use it directly as a DI token. Either way, `domain/` contains no
+method body that does real work: the only exception is a pure function/method
+with no I/O and no framework import (e.g. a total-with-discount calculation
+on the model itself). If a "pure business service" needs its own file, put
+it in `structure/` — `domain/` is declarations only in this architecture.
+
+The implementation lives in `structure/`, flat — no `datasource/`
+sub-layer, no separate remote/local port pair:
+
+```ts
+// structure/order-http-repository.ts
+export class OrderHttpRepository extends OrderRepository {
+  async findById(id: string): Promise<Order> { /* ... */ }
+  async listByCustomer(customerId: string): Promise<Order[]> { /* ... */ }
+}
+```
 
 ## Repository is the only orchestrator
 
-`ui/` and `domain/` never call a datasource directly — only the repository
-implementation does, in every tier. This keeps remote/local swappable (e.g.
-add a local cache later) without touching any caller.
-
-In a `small`-tier feature (see `references/tiers.md`), the repository
-implementation may make the transport call itself instead of delegating to a
-separate `*.remote.datasource.ts` file — there's no second source to swap in
-yet. The port and the mapper don't change, and `ui/` never notices either
-way; see "Escalation path" below.
-
-## Datasource port and swappable implementations
-
-A datasource is a port too, scoped narrower than the repository. `remote`
-talks to the network (HTTP/GraphQL/WebSocket — transport is an
-implementation detail even within `data/`); `local` talks to a
-cache/localStorage/IndexedDB. Both return the same DTO shape so the
-repository can treat them interchangeably:
-
-```ts
-// data/order.datasource.port.ts
-export interface OrderRemoteDatasource { fetchById(id: string): Promise<OrderDto>; }
-export interface OrderLocalDatasource { get(id: string): Promise<OrderDto | null>; }
-```
+`store/`, the facade, and `pages/`/`components/` never make a transport call
+directly — only the repository implementation in `structure/` does. If a
+feature later needs a second source (a local cache, an offline fallback),
+that orchestration is added inside the same repository implementation; the
+port in `domain/` and everything above it stay unchanged.
 
 ## Mapper is mandatory, both directions
 
-No DTO type is ever imported by anything in `domain/` or `ui/`. If a
-component needs a field that only exists on the DTO, that's a signal the
-entity is incomplete — fix the entity and the mapper, don't leak the DTO.
+No DTO type is ever imported by anything in `domain/`, `store/`,
+`components/`, or `pages/`. `structure/` owns the DTO shape and the mapper
+that converts it to/from the model declared in `domain/`. If a component
+needs a field that only exists on the DTO, that's a signal the model is
+incomplete — fix the model and the mapper, don't leak the DTO.
+
+```ts
+// structure/order.mapper.ts
+import type { Order } from '../domain/order.model';
+import type { OrderDto } from './order.dto';
+
+export const OrderMapper = {
+  toModel(dto: OrderDto): Order {
+    return { id: dto.id, customerName: dto.customer_name, total: Number(dto.total_amount) };
+  },
+};
+```
 
 ## Error translation
 
 Transport errors (HTTP 404, network timeout, GraphQL error payload) are
-caught inside `data/` and translated into domain-meaningful errors (e.g.
-`OrderNotFoundError`) before they reach `ui/`. A smart component or facade
-catches and reacts to those, instead of branching on HTTP status codes.
+caught inside `structure/` and translated into domain-meaningful errors
+(e.g. `OrderNotFoundError`) before they reach the facade. The facade catches
+and reacts to those, instead of branching on HTTP status codes.
 
 ## Where cache/query libraries live — and where they don't
 
 TanStack Query, SWR, RTK Query, Angular's `resource()`/`httpResource()`,
 Apollo's cache — all of these are **runtime/presentation concerns**. They
-wrap a call to the repository; they do not replace it, and they never appear
-inside `data/`. Reasoning: `data/` stays a plain, framework-free,
-unit-testable module whose only job is "get me the entity." Swapping one
-cache library for another, or migrating UI framework, never touches
-`data/` or `domain/`.
+wrap a call to the facade (which itself calls the repository); they never
+appear inside `structure/` or `domain/`. Reasoning: the data layer stays a
+plain, framework-free, unit-testable module whose only job is "get me the
+model." Swapping one cache library for another, or migrating UI framework,
+never touches `structure/` or `domain/`.
 
-## Escalation path
-
-Growing `data/` from `small` to `medium`/`large` is additive, not a rewrite:
-
-**Phase 1 (`small`, default starting point).** Port + one repository
-implementation that makes the transport call inline + mapper. No datasource
-files, no local cache.
-
-```
-domain/order.repository.port.ts
-data/order.dto.ts
-data/order.mapper.ts
-data/order.repository.ts        # calls the network itself
-```
-
-**Phase 2 (`medium`/`large`, on trigger — a second data source, or caching/
-offline logic appearing).** Extract the transport call behind
-`order.remote.datasource.ts` (implementing a new `order.datasource.port.ts`),
-optionally add `order.local.datasource.ts`, and have the repository
-orchestrate both.
-
-```
-domain/order.repository.port.ts
-data/order.dto.ts
-data/order.mapper.ts
-data/order.datasource.port.ts
-data/order.remote.datasource.ts
-data/order.local.datasource.ts   # added when caching/offline is needed
-data/order.repository.ts         # now orchestrates remote + local
-```
-
-The repository's public shape (`OrderRepository`, from `domain/`) doesn't
-change between phases, and neither does anything in `ui/` — that's the entire
-point of the port living in `domain/` rather than being inferred from
-whatever `data/` happens to do.
-
-## Cache, TTL, and offline
-
-Two different things get called "caching" here — keep them apart:
-
-- **A cache/query library's own request cache** (TanStack Query's cache,
-  `httpResource()`'s internal state, etc.) is a `ui/` concern — see "Where
-  cache/query libraries live" above. It never enters `data/`.
-- **A deliberate TTL/offline-fallback policy** (serve stale-but-present data
-  when the network is down, treat cached data as expired after N minutes) is
-  business-relevant orchestration logic, and it belongs in the repository
-  implementation, coordinating a `remote` and a `local` datasource
-  (`medium`/`large` tier — see the escalation path above). The repository
-  decides *which* datasource answers a given call; `ui/` just awaits the
-  repository method and never knows a cache was consulted.
+A deliberate TTL/offline-fallback policy (serve stale-but-present data when
+the network is down, treat cached data as expired after N minutes) is
+business-relevant orchestration logic, and it belongs in the repository
+implementation inside `structure/` — never in the facade, the store, or
+`pages/`.

@@ -7,23 +7,24 @@ framework the project uses.
 ```
 features/orders/
   domain/
-    order.entity.ts
-    order.repository.port.ts
-    order-pricing.service.ts
-  data/
+    order.model.ts
+    order-repository.ts
+  structure/
     order.dto.ts
     order.mapper.ts
-    order.datasource.port.ts
-    order.remote.datasource.ts
-    order.repository.ts
-  ui/
-    orders.facade.ts
-    order-list.smart.ts
+    order-http-repository.ts
+  store/
+    orders.store.ts
+  components/
     order-card.dumb.ts
+  pages/
+    order-list.page.ts
+  orders.facade.ts
+  orders.routes.ts
   index.ts
 ```
 
-### `domain/order.entity.ts`
+### `domain/order.model.ts`
 
 ```ts
 export interface Order {
@@ -41,31 +42,19 @@ export interface OrderItem {
 }
 ```
 
-### `domain/order.repository.port.ts`
+### `domain/order-repository.ts`
 
 ```ts
-import type { Order } from './order.entity';
+import type { Order } from './order.model';
 
-export interface OrderRepository {
-  findById(id: string): Promise<Order>;
-  listByCustomer(customerId: string): Promise<Order[]>;
+/** Port: declaration only. structure/ provides the implementation. */
+export abstract class OrderRepository {
+  abstract findById(id: string): Promise<Order>;
+  abstract listByCustomer(customerId: string): Promise<Order[]>;
 }
 ```
 
-### `domain/order-pricing.service.ts`
-
-```ts
-import type { Order } from './order.entity';
-
-/** Pure business rule: no I/O, no framework import. */
-export function applyBulkDiscount(order: Order): number {
-  const itemCount = order.items.reduce((sum, i) => sum + i.quantity, 0);
-  const discount = itemCount >= 10 ? 0.1 : 0;
-  return order.total * (1 - discount);
-}
-```
-
-### `data/order.dto.ts`
+### `structure/order.dto.ts`
 
 ```ts
 export interface OrderDto {
@@ -77,14 +66,14 @@ export interface OrderDto {
 }
 ```
 
-### `data/order.mapper.ts`
+### `structure/order.mapper.ts`
 
 ```ts
-import type { Order } from '../domain/order.entity';
+import type { Order } from '../domain/order.model';
 import type { OrderDto } from './order.dto';
 
 export const OrderMapper = {
-  toEntity(dto: OrderDto): Order {
+  toModel(dto: OrderDto): Order {
     return {
       id: dto.id,
       customerName: dto.customer_name,
@@ -96,89 +85,86 @@ export const OrderMapper = {
 };
 ```
 
-### `data/order.datasource.port.ts`
+### `structure/order-http-repository.ts`
 
 ```ts
+import { OrderRepository } from '../domain/order-repository';
+import type { Order } from '../domain/order.model';
 import type { OrderDto } from './order.dto';
-
-export interface OrderRemoteDatasource {
-  fetchById(id: string): Promise<OrderDto>;
-  fetchByCustomer(customerId: string): Promise<OrderDto[]>;
-}
-```
-
-### `data/order.remote.datasource.ts`
-
-```ts
-import type { OrderRemoteDatasource } from './order.datasource.port';
-import type { OrderDto } from './order.dto';
+import { OrderMapper } from './order.mapper';
 import { httpClient } from '../../../core/http/http-client';
 import { OrderNotFoundError, OrderFetchError } from '../domain/order.errors';
 
-export class OrderRemoteDatasourceImpl implements OrderRemoteDatasource {
-  async fetchById(id: string): Promise<OrderDto> {
+export class OrderHttpRepository extends OrderRepository {
+  async findById(id: string): Promise<Order> {
     const res = await httpClient.get(`/orders/${id}`);
     if (res.status === 404) throw new OrderNotFoundError(id);
     if (!res.ok) throw new OrderFetchError(res.status);
-    return res.json();
-  }
-
-  async fetchByCustomer(customerId: string): Promise<OrderDto[]> {
-    const res = await httpClient.get(`/customers/${customerId}/orders`);
-    if (!res.ok) throw new OrderFetchError(res.status);
-    return res.json();
-  }
-}
-```
-
-### `data/order.repository.ts`
-
-```ts
-import type { OrderRepository } from '../domain/order.repository.port';
-import type { Order } from '../domain/order.entity';
-import type { OrderRemoteDatasource } from './order.datasource.port';
-import { OrderMapper } from './order.mapper';
-
-export class OrderRepositoryImpl implements OrderRepository {
-  constructor(private readonly remote: OrderRemoteDatasource) {}
-
-  async findById(id: string): Promise<Order> {
-    const dto = await this.remote.fetchById(id);
-    return OrderMapper.toEntity(dto);
+    const dto: OrderDto = await res.json();
+    return OrderMapper.toModel(dto);
   }
 
   async listByCustomer(customerId: string): Promise<Order[]> {
-    const dtos = await this.remote.fetchByCustomer(customerId);
-    return dtos.map(OrderMapper.toEntity);
+    const res = await httpClient.get(`/customers/${customerId}/orders`);
+    if (!res.ok) throw new OrderFetchError(res.status);
+    const dtos: OrderDto[] = await res.json();
+    return dtos.map(OrderMapper.toModel);
   }
 }
 ```
 
-### `ui/orders.facade.ts`
+### `store/orders.store.ts`
 
 ```ts
-import { useState } from 'react'; // example only — swap for the project's framework primitives
-import { useQuery } from '@tanstack/react-query';
-import { orderRepository } from './orders.wiring'; // composition root for this feature
+import type { Order } from '../domain/order.model';
 
-export function useOrdersFacade(customerId: string) {
-  const { data, isLoading, error } = useQuery(
-    ['orders', customerId],
-    () => orderRepository.listByCustomer(customerId),
-  );
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+/** Private mutable state, public readonly API, mutation only via named methods. */
+export class OrdersStore {
+  #orders: Order[] = [];
 
-  return { orders: data ?? [], isLoading, error, selectedId, selectOrder: setSelectedId };
+  get orders(): readonly Order[] { return this.#orders; }
+
+  setOrders(orders: Order[]) { this.#orders = orders; }
 }
 ```
 
-### `ui/order-list.smart.ts`
+### `orders.facade.ts`
 
 ```ts
-import { useOrdersFacade } from './orders.facade';
-import { OrderCardDumb } from './order-card.dumb';
+import { useState } from 'react'; // example only — swap for the project's framework primitives
+import { OrderHttpRepository } from './structure/order-http-repository';
+import { OrdersStore } from './store/orders.store';
 
-export function OrderListSmart({ customerId }: { customerId: string }) {
+const repository = new OrderHttpRepository(); // composition root for this feature
+const store = new OrdersStore();
+
+export function useOrdersFacade(customerId: string) {
+  const [isLoading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+
+  async function load() {
+    setLoading(true);
+    try {
+      store.setOrders(await repository.listByCustomer(customerId));
+    } catch (e) {
+      setError(e as Error);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return { orders: store.orders, isLoading, error, selectedId, selectOrder: setSelectedId, load };
+}
+```
+
+### `pages/order-list.page.ts`
+
+```ts
+import { useOrdersFacade } from '../orders.facade';
+import { OrderCardDumb } from '../components/order-card.dumb';
+
+export function OrderListPage({ customerId }: { customerId: string }) {
   const { orders, isLoading, error, selectOrder } = useOrdersFacade(customerId);
 
   if (isLoading) return <Spinner />;
@@ -195,17 +181,17 @@ export function OrderListSmart({ customerId }: { customerId: string }) {
 }
 ```
 
-### `ui/order-card.dumb.ts`
+### `components/order-card.dumb.ts`
 
 ```ts
-import type { Order } from '../domain/order.entity';
+import type { Order } from '../domain/order.model';
 
 interface OrderCardProps {
   order: Order;
   onSelect: (id: string) => void;
 }
 
-/** Props in, events out. No import from data/, no fetch, no router. */
+/** Props in, events out. No import from structure/, no fetch, no router. */
 export function OrderCardDumb({ order, onSelect }: OrderCardProps) {
   return (
     <div onClick={() => onSelect(order.id)}>
@@ -222,69 +208,17 @@ export function OrderCardDumb({ order, onSelect }: OrderCardProps) {
 // Framework-agnostic shape — adapt to the host router's API.
 // The app shell imports this dynamically; it never defines orders' routes itself.
 export const ordersRoutes = [
-  { path: 'orders', component: () => import('./ui/order-list.smart') },
+  { path: 'orders', component: () => import('./pages/order-list.page') },
 ];
 ```
 
 ### `index.ts`
 
 ```ts
-export type { Order } from './domain/order.entity';
-export { OrderListSmart } from './ui/order-list.smart';
+export type { Order } from './domain/order.model';
+export { OrderListPage } from './pages/order-list.page';
 ```
 
 Only these two (plus `orders.routes.ts`, imported dynamically by the shell)
 are ever imported from outside `features/orders/`. Everything else — the
-repository, the datasource, the mapper, the facade — is internal.
-
-## Small-tier variant
-
-See `references/tiers.md` and `references/data-layer.md`'s escalation path.
-In a `small`-tier project, skip the standalone datasource file — the
-repository implementation makes the transport call itself. Nothing else in
-this example changes: same port, same mapper, same `ui/` files.
-
-```
-features/orders/
-  domain/
-    order.entity.ts
-    order.repository.port.ts
-  data/
-    order.dto.ts
-    order.mapper.ts
-    order.repository.ts        # calls the network directly, no datasource file
-  ui/
-    order-list.smart.ts        # no facade needed with a single consumer
-    order-card.dumb.ts
-  index.ts
-```
-
-### `data/order.repository.ts` (small tier)
-
-```ts
-import type { OrderRepository } from '../domain/order.repository.port';
-import type { Order } from '../domain/order.entity';
-import { httpClient } from '../../../core/http/http-client';
-import { OrderMapper } from './order.mapper';
-import type { OrderDto } from './order.dto';
-
-export class OrderRepositoryImpl implements OrderRepository {
-  async findById(id: string): Promise<Order> {
-    const res = await httpClient.get(`/orders/${id}`);
-    const dto: OrderDto = await res.json();
-    return OrderMapper.toEntity(dto);
-  }
-
-  async listByCustomer(customerId: string): Promise<Order[]> {
-    const res = await httpClient.get(`/customers/${customerId}/orders`);
-    const dtos: OrderDto[] = await res.json();
-    return dtos.map(OrderMapper.toEntity);
-  }
-}
-```
-
-`OrderRepository` (the port) and everything in `ui/` are byte-for-byte
-identical to the `medium`/`large` example above. Escalating later means
-extracting this method body into `order.remote.datasource.ts` behind
-`order.datasource.port.ts` — a `data/`-internal move that `ui/` never has to
-know happened.
+repository, the mapper, the store, the facade — is internal.
