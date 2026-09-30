@@ -32,7 +32,7 @@ Declare the full cascade once, with `tokens` right after `reset`:
 }
 ```
 
-Color tokens follow the same layer but need their own anatomy — see [color.md](color.md) for the L/C/H channel split.
+Color tokens follow the same layer but need their own anatomy — see [color.md](color.md) for base color tokens and how states derive from them.
 
 ---
 

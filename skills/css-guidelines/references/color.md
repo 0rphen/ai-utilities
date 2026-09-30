@@ -1,10 +1,10 @@
-# CSS Guidelines — Channel-Based Color System (L/C/H)
+# CSS Guidelines — Color System (Base Tokens + Relative Color)
 
 Read this whenever a task touches color: a new palette, a theme, dark mode, or any interactive state (hover/active/disabled/error/success).
 
-## Why Atomic `oklch()` Isn't Enough
+## One Base Token per Color
 
-`--color-accent: oklch(65% 0.18 250)` is a single opaque value. To make a hover you either rewrite the whole triplet or reach for `color-mix()`, which blends all three channels at once in ways that are hard to predict and impossible to target — "a bit brighter, same hue" isn't expressible. The fix: **store L, C, and H as independent custom properties**, compose the color once from them, and derive every state from that composed color with relative color syntax. A state then means overriding the one channel that actually changes, computed right where it's used.
+A color is one custom property holding one complete value — `--color-brand: oklch(0.6 0.2 260)`. Its channels are never stored as separate custom properties: relative color syntax reads them straight off the token (`oklch(from var(--color-brand) l c h)`), so "a bit brighter, same hue" is expressible without splitting anything up front. Every state derives from that one token, computed right where it's used, by moving only the channel that actually changes.
 
 ---
 
@@ -13,31 +13,35 @@ Read this whenever a task touches color: a new palette, a theme, dark mode, or a
 ```css
 @layer tokens {
   :root {
-    /* brand — #4d8fff */
-    --brand-l: 0.65;
-    --brand-c: 0.18;
-    --brand-h: 250;
-    --brand-a: 1;
-
-    /* composed color — the only thing components consume */
-    --color-brand: oklch(
-      var(--brand-l) var(--brand-c) var(--brand-h) / var(--brand-a)
-    );
+    --color-brand: oklch(0.6 0.2 260);
+    --color-surface: oklch(0.98 0.01 250);
   }
 }
 ```
 
-L and C are unitless numbers (`0.65`, not `65%`), H is a bare degree number — this keeps every `calc()` a plain arithmetic expression with no unit juggling.
+`oklch()` is the preferred format, not a mandatory one — any valid CSS color works as a token's value, and the rest of this system behaves identically on top of it:
 
-Every channel group opens with a hex reference comment, as shown above. It's not a consumable value and never becomes a custom property — it's a reading anchor so the color is recognizable without resolving OKLCH channels mentally. The hex comes from converting the actual source color (a prior palette, a mockup swatch, a value confirmed with the requester), never invented. The channels stay the only source of truth — if one changes, update the comment in the same edit or it goes stale.
+```css
+@layer tokens {
+  :root {
+    --color-brand: #2e79f5; /* same color as above — equally valid as a base token */
+  }
+}
+```
+
+Why `oklch()` is preferred: lightness, chroma, and hue are readable on the token itself, so contrast and consistency between tokens can be checked by eye, and it reaches colors outside the sRGB gamut that hex/`rgb()`/`hsl()` can't express. When a color arrives in another format (a brand guide, a mockup swatch) and there's no reason to convert it, keep it as given.
+
+Whatever the format, a color literal only ever appears as the value of a token in the tokens layer. Blocks, states, and exceptions consume the token — never a literal of their own.
 
 ---
 
 ## States via Relative Color Syntax
 
-A state derives from the composed color at the point of use — `oklch(from var(--color-brand) calc(l + var(--l-step-hover)) c h)`. The `from` keyword is required: it opens a scope where `l`, `c`, `h`, and `alpha` are the source color's own channels, available as plain numbers to `calc()`. Omitting `from` is invalid syntax — the declaration is dropped silently, no console error.
+A state derives from the base token at the point of use — `oklch(from var(--color-brand) calc(l + var(--l-step-hover)) c h)`. The `from` keyword is required: it opens a scope where `l`, `c`, `h`, and `alpha` are the source color's own channels, available as plain numbers to `calc()`. Omitting `from` is invalid syntax — the declaration is dropped silently, no console error.
 
-Because the state is computed directly in the declaration that uses it, there's no custom property to recompute and nothing frozen at `:root` — `--color-brand` is read once, live, wherever `oklch(from var(--color-brand) …)` appears. This is also why the old base/live channel split and the "redeclare the composed color at every block" rule are gone: there's only one channel set, and no cascade recomputation to work around.
+The source's format doesn't matter: `oklch(from …)` converts it to OKLCH first, so `l` and `c` are always unitless numbers (`l` in `[0, 1]`) and `h` a bare degree number, whether the token was written as `oklch()`, hex, or anything else. The same deltas apply to every token.
+
+Because the state is computed directly in the declaration that uses it, there's no custom property to recompute and nothing frozen at `:root` — `--color-brand` is read once, live, wherever `oklch(from var(--color-brand) …)` appears.
 
 ---
 
@@ -80,32 +84,27 @@ If the hover across the whole product needs to feel stronger, `--l-step-hover` i
 
 ---
 
-## Dark Mode = Redefine Channels, Not Colors
+## Dark Mode = Redeclare the Token
 
-The default resolution: dark mode changes the channels directly (mainly L, often C settles a bit lower too), H stays put because it's the same hue family in both themes.
+The default resolution: dark mode redeclares the same token with its dark value. Nothing else moves — every state derives from the token live, so hover/active/disabled follow the new value without being touched.
 
 ```css
 @layer tokens {
   :root {
-    /* surface — #f4f9ff */
-    --surface-l: 0.98;
-    --surface-c: 0.01;
-    --surface-h: 250;
+    --color-surface: oklch(0.98 0.01 250);
   }
 
   @media (prefers-color-scheme: dark) {
     :root {
-      /* surface dark — #0f171f */
-      --surface-l: 0.2;
-      --surface-c: 0.02;
+      --color-surface: oklch(0.2 0.02 250);
     }
   }
 }
 ```
 
-If the project toggles theme via a class/attribute instead of (or in addition to) `prefers-color-scheme`, redefine the same channel custom properties under that selector (e.g. `:root[data-theme="dark"]`) — the mechanism for *how* dark mode activates doesn't change *what* gets redefined.
+If the project toggles theme via a class/attribute instead of (or in addition to) `prefers-color-scheme`, redeclare the same tokens under that selector (e.g. `:root[data-theme="dark"]`) — the mechanism for *how* dark mode activates doesn't change *what* gets redeclared.
 
-`light-dark()` is the documented exception, not the default — reach for it only when light and dark genuinely need a different hue, not just a different lightness of the same color (e.g. a brand mark that's warm-toned in light mode and cool-toned in dark mode).
+`light-dark()` is the documented exception, not the default — it only resolves once `color-scheme` is declared, so reach for it only in a project that already sets `color-scheme` deliberately and covers every surface it affects.
 
 Don't set `color-scheme` speculatively: `:root { color-scheme: dark }` switches on the browser's UA-default dark styling for any element without explicit `color`/`background` yet, breaking contrast silently on whatever hasn't been styled. Only set it once the real implementation covers every surface it touches.
 
@@ -121,16 +120,16 @@ Don't set `color-scheme` speculatively: `:root { color-scheme: dark }` switches 
 
 - **Relative color syntax is the standard state mechanism** on system colors (`oklch(from var(--color-brand) calc(l + var(--l-step-hover)) c h)`), not just a one-off — but it also covers a color that isn't part of the token system, e.g. one arriving from data at runtime, the same way.
 
-- **Contrast** — L in OKLCH tracks perceptual lightness reasonably well, making it a cheap accessibility check when moving channels. Keep a documented minimum separation between a text token's `-l` and its surface token's `-l` (confirm the exact minimum with the requester per project), and re-check it whenever a state delta pushes L close to that boundary.
+- **Contrast** — L in OKLCH tracks perceptual lightness reasonably well, making it a cheap accessibility check. Keep a documented minimum separation between a text token's L and its surface token's L (confirm the exact minimum with the requester per project), and re-check it whenever a state delta pushes L close to that boundary. With tokens written in `oklch()` the L is readable directly; for a token in another format, convert it to check.
 
 ---
 
 ## Detecting an Existing Color System
 
-Before introducing this system into a project, check whether existing color tokens already split into independent L/C/H channels or are atomic. If channels already exist, adopt that project's naming. If colors are atomic, do not refactor the whole project to the channel system — apply channels only to what's being created or touched, and report the inconsistency instead of silently fixing it everywhere.
+Before introducing this system into a project, check how its existing color tokens are defined. If they're already one token per color — in any format — use them as they are; don't convert them to `oklch()` unasked. If the project stores L/C/H as separate custom properties and composes colors from them, adopt that convention for what's being created or touched instead of mixing in a second one, and report the inconsistency rather than silently refactoring it everywhere.
 
 ## External Resources
 
 - [oklch.com](https://oklch.com) — pick and convert OKLCH colors
 - [MDN: `oklch()`](https://developer.mozilla.org/en-US/docs/Web/CSS/color_value/oklch)
-- [MDN: `@property`](https://developer.mozilla.org/en-US/docs/Web/CSS/@property)
+- [MDN: relative colors](https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_colors/Relative_colors)
