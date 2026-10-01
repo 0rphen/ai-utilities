@@ -14,7 +14,7 @@ CUBE classifies a rule by the **role it plays in the cascade** — not by how co
 
 ## Composition (`.l-*`)
 
-Layout skeleton, agnostic of appearance. No color, no typography, no decoration — only arrangement (`display`, `gap`, `grid-template-areas`, `flex-direction`). Reusable across unrelated blocks.
+Layout skeleton, agnostic of appearance. No color, no typography, no decoration — only arrangement (`display`, `gap`, `grid-template-areas`, `flex-direction`). Reusable across unrelated blocks. A composition may also set a context property (a density or surface mode, for example) that the blocks inside it read with a container style query — it declares the context, never the appearance the blocks derive from it (see `layout.md`).
 
 ```css
 @layer composition {
@@ -137,6 +137,7 @@ If the project already has a naming convention (BEM, SMACSS, Atomic Design, util
 | Is it the component's own appearance/behavior? | Yes | Block |
 | Is it a single property (or tightly-coupled group) applied directly in markup? | Yes | Utility |
 | Is it a variation of a block that already exists? | Yes | Exception, nested inside that block |
+| Is it a context a container imposes on the blocks inside it? | Yes | Composition sets the context property; each block reacts with a nested `@container style()` |
 
 ## External Resources
 

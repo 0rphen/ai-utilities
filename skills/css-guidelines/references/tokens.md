@@ -32,6 +32,8 @@ Declare the full cascade once, with `tokens` right after `reset`:
 }
 ```
 
+Context properties a project defines for container style queries (a density or surface mode, for example) get their default value here too, on `:root` — see [layout.md](layout.md).
+
 Color tokens follow the same layer but need their own anatomy — see [color.md](color.md) for base color tokens and how states derive from them.
 
 ---
@@ -40,7 +42,7 @@ Color tokens follow the same layer but need their own anatomy — see [color.md]
 
 An internal custom property is a block-scoped alias, declared at the top of the block, that stands between a public token and the declarations that use it. The leading `_` is a naming convention, not an engine-enforced boundary: CSS gives custom properties no visibility control, so `--_*` still inherits into every descendant and is still assignable by any selector that matches the block. The underscore signals "this is for this block's own use" — the barrier is authoring discipline (see the reassignment rule below), not something the cascade guarantees. For an engine-backed version of that boundary, see the optional `@property` hardening at the end of this section.
 
-**When**: only for an axis something actually moves — a state, a `&[data-*]` exception, or a documented external reconfiguration (a theme, a host site that reskins the block). Reuse alone is not a reason: a block used on every page still consumes the token directly on every axis that never changes, because an internal with nothing to vary is dead indirection.
+**When**: only for an axis something actually moves — a state, a `&[data-*]` exception, a container style query reacting to context set by an ancestor (see [layout.md](layout.md)), or a documented external reconfiguration (a theme, a host site that reskins the block). Reuse alone is not a reason: a block used on every page still consumes the token directly on every axis that never changes, because an internal with nothing to vary is dead indirection.
 
 **How**: name it by role, not by the token it currently points to (`--_bg`, `--_radius`, `--_pad-block` — never `--_color-brand`, `--_radius-m`). One internal per configurable axis. Every declaration on that axis consumes the internal, never the public token in parallel. A state or exception reassigns the internal instead of repeating the declaration.
 
@@ -73,7 +75,7 @@ An internal custom property is a block-scoped alias, declared at the top of the 
 }
 ```
 
-Reassignment stays inside the block's own nesting — a state, or `&[data-variant='…']`. Never from a parent or a sibling block (`.sidebar .card { --_radius: … }`): that both breaks the block's encapsulation and crosses two classes in one selector, which the nesting rule already forbids. See [color.md](color.md) for internal customs applied to a state's color axis, and [cube.md](cube.md) for the block/exception placement this pattern lives in.
+Reassignment stays inside the block's own nesting — a state, `&[data-variant='…']`, or a nested `@container style(…)`. Never from a parent or a sibling block (`.sidebar .card { --_radius: … }`): that both breaks the block's encapsulation and crosses two classes in one selector, which the nesting rule already forbids. See [color.md](color.md) for internal customs applied to a state's color axis, and [cube.md](cube.md) for the block/exception placement this pattern lives in.
 
 ### Optional hardening with `@property`
 

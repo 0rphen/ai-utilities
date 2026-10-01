@@ -1,6 +1,6 @@
 ---
 name: css-guidelines
-description: Modern CSS/SCSS authoring rules — cascade layers, CUBE CSS placement, grid/container queries, logical properties, design tokens, and a token-based color system (OKLCH preferred) with relative-color states. Use when writing, editing, reviewing or auditing any CSS, SCSS, or `<style>` block in a .vue/.svelte/.astro component, or making any styling decision (layout, spacing, units, breakpoints, tokens, color, states, dark mode).
+description: Modern CSS/SCSS authoring rules — cascade layers, CUBE CSS placement, grid/container queries (size and style queries), logical properties, design tokens, and a token-based color system (OKLCH preferred) with relative-color states. Use when writing, editing, reviewing or auditing any CSS, SCSS, or `<style>` block in a .vue/.svelte/.astro component, or making any styling decision (layout, spacing, units, breakpoints, tokens, color, states, dark mode).
 allowed-tools: Read, Write, Edit, Glob, Grep
 ---
 
@@ -10,7 +10,7 @@ A single source of truth for how CSS/SCSS gets written, in any project or contex
 
 ## Overview
 
-Provides concrete rules for structuring the cascade, placing every rule in the layer it belongs to, and making layout, color, and spacing decisions consistently across a codebase. Covers cascade layers (CUBE CSS), container/media queries, logical properties, fluid tokens, and a token-based color system (OKLCH preferred) with predictable states and dark mode.
+Provides concrete rules for structuring the cascade, placing every rule in the layer it belongs to, and making layout, color, and spacing decisions consistently across a codebase. Covers cascade layers (CUBE CSS), container size/style queries and media queries, logical properties, fluid tokens, and a token-based color system (OKLCH preferred) with predictable states and dark mode.
 
 These rules apply to what's being created or touched — never as a silent wholesale rewrite of a project's existing conventions. If a project already has its own naming convention, layer order, or token system, adopt it instead of imposing a second one; report a conflict rather than fixing it unasked.
 
@@ -20,12 +20,12 @@ These rules apply to what's being created or touched — never as a silent whole
 2. **Declare the cascade once**: `@layer reset, tokens, composition, block, utility, exception;` — `utility` sits after `block` so a utility class wins without `!important`; `exception` is last because it's the most specific override a block can have by design. `!important` is forbidden — move up a layer or increase real specificity instead.
 3. **Place every rule by CUBE role**, not by how complex the component looks — layout skeleton, the component's own appearance, a single-property helper, or a variation of an existing block. See `references/cube.md`.
 4. **Choose the right layout tool**: flex for one-dimensional arrangements (responsive via `flex-wrap`, never a breakpoint); grid + `grid-template-areas` for named/heterogeneous zones, redefined at a breakpoint rather than reordering DOM nodes; `repeat(auto-fit/auto-fill, minmax(...))` for homogeneous collections; subgrid when a child must align to a parent's tracks. See `references/layout.md`.
-5. **Prefer container queries**: `container-type` + `@container` by default; reserve media queries for genuinely global (viewport) concerns, always in range syntax (`@media (400px <= width <= 900px)`). A section that reflows on its own is a component concern even if it spans the full page.
+5. **Prefer container queries**: `container-type` + `@container` by default; reserve media queries for genuinely global (viewport) concerns, always in range syntax (`@media (400px <= width <= 900px)`). A section that reflows on its own is a component concern even if it spans the full page. When a container imposes a context on its children rather than a size (e.g. a density or surface mode), it sets a public context custom property in the composition layer and each block reacts with a nested `@container style(--x: value)` that only reassigns its own `--_*` internals — never a descendant selector reaching into the block. See `references/layout.md`.
 6. **Use relative units only**: `px` is forbidden except for an explicitly justified 1px hairline. Reach for `ch`, `rem`, `em`, `%`, `fr`, `dvh`/`dvi`/`svh`/`dvw`/`dvb`/`svw`, `vw`/`vh`, and the `cq*` family.
 7. **Use logical properties, always**: `padding-inline`/`padding-block`, `margin-inline`/`margin-block`, `inset-*`, `border-inline-*`/`border-block-*` — never physical `padding-left`, `margin-top`, `left`/`right`.
 8. **Source general values from tokens**: border-radius, padding, margin, gap, font-size, duration all come from custom properties in a tokens layer, never repeated literals. Fluid scales use `clamp()`, caps use `min()`/`max()`. See `references/tokens.md`.
 9. **Define each color as one base token**: a complete value in a `--color-*` custom property in the tokens layer — `oklch()` preferred, any valid CSS color format accepted. Never a color literal outside the tokens layer (the only exceptions are `transparent` and `currentColor`), and never L/C/H stored as separate custom properties. Dark mode redeclares the token; states derive from the token at the point of use with relative color syntax (`oklch(from var(--color-x) calc(l + var(--l-step-hover)) c h)`) and a shared delta token. See `references/color.md`.
-10. **Expose only a block's varying axes through internal custom properties**: declare `--_*` at the top of the block for an axis something actually moves — a state, a `&[data-*]` exception, or a documented external reconfiguration (theme/host) — name it by role (`--_bg`, `--_radius`, `--_pad-block`), make every declaration on that axis consume only the internal, and reassign the internal in the state instead of repeating the declaration. An axis with a fixed value consumes the token directly, however widely the block is reused. See `references/tokens.md`.
+10. **Expose only a block's varying axes through internal custom properties**: declare `--_*` at the top of the block for an axis something actually moves — a state, a `&[data-*]` exception, a container style query, or a documented external reconfiguration (theme/host) — name it by role (`--_bg`, `--_radius`, `--_pad-block`), make every declaration on that axis consume only the internal, and reassign the internal in the state instead of repeating the declaration. An axis with a fixed value consumes the token directly, however widely the block is reused. See `references/tokens.md`.
 11. **Nest only what compounds onto the same selector**: pseudo-classes, pseudo-elements, at-rules that modify the block, and exceptions nest with `&`, max ~2 levels deep. Never write a bare `&--suffix` — it parses as a type selector, not a class suffix. Keep selectors crossing two distinct classes or DOM nodes flat.
 12. **Meet the accessibility floor**: `:focus-visible` always visible, touch targets ≥ `2.75rem`, respect `prefers-reduced-motion`, and keep a documented minimum lightness separation between a text token and its surface token.
 13. **Never invent a number**: every value comes from an existing project token or one confirmed with whoever requested the work — not a placeholder, not something eyeballed off a mockup.
@@ -51,6 +51,9 @@ The declaration is missing the `from` keyword — `oklch(var(--color-x) calc(l +
 ### Contrast breaks on an unstyled element after adding dark mode
 `color-scheme` set preemptively (`:root { color-scheme: dark }`) switches on the browser's UA dark defaults for anything without an explicit `color`/`background` yet. **Fix**: only set `color-scheme` once every surface it affects has explicit color tokens.
 
+### A container style query never matches
+`@container style()` evaluates the nearest **ancestor**, never the element itself — a block that sets `--x` on its own selector can't query it — and compares the computed value as an exact token string, so `compact` and `"compact"` are different values. **Fix**: set the context property on an ancestor container (composition layer) and write the value in the query exactly as it's declared; no `container-type` is needed, every element is a style container.
+
 ## Constraints and Warnings
 
 - **`!important` is forbidden** — move up a layer or raise real specificity.
@@ -63,12 +66,13 @@ The declaration is missing the `from` keyword — `oklch(var(--color-x) calc(l +
 - **No invented numbers, ever** — not a placeholder, not "reasonable for now."
 - **An internal (`--_*`) is declared only for an axis something moves** — reuse alone never justifies one; a fixed value consumes the token directly.
 - **A declared internal (`--_*`) is always consumed** — declaring `--_x` and still reading the public token in the declaration is dead indirection.
-- **`--_*` is never reassigned from outside its block** — not from a parent selector, not from another block.
+- **`--_*` is never reassigned from outside its block** — not from a parent selector, not from another block. A parent that needs to configure a child sets a public context property that the child's own `@container style()` query reads.
+- **A container style query only reassigns `--_*` internals** — never redeclares the final property, never holds a literal; its context property is set in the composition layer, never inline in markup or from the block layer.
 
 ## References
 
 - **[references/tokens.md](references/tokens.md)** — the tokens layer, spacing/radius/typography scales, internal custom properties (`--_*`) for a block's varying axes, and fluid sizing with `clamp()`/`min()`/`max()`. Open before adding any general numeric value or exposing an axis a block's states actually move.
-- **[references/layout.md](references/layout.md)** — grid-template-areas with container queries, subgrid, flex, homogeneous collections, alignment, `aspect-ratio`, range-syntax media queries, and logical properties. Open before laying out any component or page section.
+- **[references/layout.md](references/layout.md)** — grid-template-areas with container queries, container style queries for context, subgrid, flex, homogeneous collections, alignment, `aspect-ratio`, range-syntax media queries, and logical properties. Open before laying out any component or page section.
 - **[references/cube.md](references/cube.md)** — the four CUBE layers, naming, folder structure, and the placement decision table. Open whenever a new rule needs a home.
 - **[references/color.md](references/color.md)** — the color system: base token anatomy and accepted formats, states via relative color syntax, dark mode, and the gotchas that break silently. Open before touching any palette, theme, dark mode, or interactive color state.
 - **[references/antipatterns.md](references/antipatterns.md)** — the antipattern → replacement table used in review/audit mode.
